@@ -1,0 +1,23 @@
+{
+  "name": "watcher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "watch.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PSeitz/watcher.git"
+  },
+  "author": "Pascal Seitz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PSeitz/watcher/issues"
+  },
+  "homepage": "https://github.com/PSeitz/watcher#readme",
+  "dependencies": {
+    "chokidar": "^1.2.0",
+    "yargs": "^3.29.0"
+  }
+}
