@@ -73,7 +73,7 @@ function copyFileList(error, stdout, stderr){
                 changedFile: changedFile,
                 targetPath:  target + changedFile,
                 sourcePath:  completeSourcePath,
-                onFinish: 'osascript ~/Documents/AppleScripts/ShowNotification.scpt "Copied ' + changedFile + '"'
+                onFinish: 'osascript ShowNotification.scpt "Copied ' + changedFile + '"'
             });
         }
         startQueue();
