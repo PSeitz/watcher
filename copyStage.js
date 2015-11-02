@@ -6,6 +6,8 @@ var nodepath = require('path');
 var exec = require('child_process').exec;
 var util = require('util');
 
+var queue = require('./queue.js');
+
 var argv = require('yargs')
     .usage('Watch and copy files with scp')
     .demand('source')
@@ -18,6 +20,9 @@ var argv = require('yargs')
     .string('source')
     .default('c', 1)
     .describe('c', 'last x commits')
+    .default('ql', 100)
+    .alias('ql', 'queuelimit')
+    .describe('ql', 'the maximum entries, which should be handled by queue')
     .example('node watch -c 2 -s /somefolder/ -t hostname:/mkay/sometarget/')
     .check(function(argv){
         if (argv.target.indexOf(":") < 0) {
@@ -39,14 +44,14 @@ console.log("source:"+source);
 
 //git --no-pager diff --name-only HEAD~1
 
-var queue = [];
+queue.setLimit(argv.ql);
 
 var append = argv.c ? "HEAD~"+argv.c:"" ;
 
 // console.log('git --no-pager diff --cached --name-only --diff-filter=MA ' + append);
 
 function copyFileList(error, stdout, stderr){
-        if (stdout) util.log('stdout: ' + stdout);
+        // if (stdout) util.log('stdout: ' + stdout);
         if (stderr) util.log('stderr: ' + stderr);
         if (error !== null) {
             util.log('exec error: ' + error);
@@ -66,9 +71,7 @@ function copyFileList(error, stdout, stderr){
             if(!fs.existsSync(completeSourcePath)) {
                 continue;
             }
-            // copy(completeSourcePath, completeTargetPath, changedFile);
-
-            queue.push({
+            queue.addToQueue({
                 command: 'scp ' + completeSourcePath + ' ' + completeTargetPath,
                 changedFile: changedFile,
                 targetPath:  target + changedFile,
@@ -76,67 +79,10 @@ function copyFileList(error, stdout, stderr){
                 onFinish: 'osascript ShowNotification.scpt "Copied ' + changedFile + '"'
             });
         }
-        startQueue();
 }
 
 exec('git --no-pager diff --cached --name-only --diff-filter=MA ' + append ,{ cwd: source }, copyFileList);
 exec('git --no-pager diff --name-only --diff-filter=MA ' + append ,{ cwd: source }, copyFileList);
 exec('git ls-files --others --exclude-standard ' + append ,{ cwd: source }, copyFileList);
 
-
-var running = false;
-
-function startQueue(){
-    if (!running) workQueue();
-}
-
-function workQueue(){
-    "use strict";
-    running = true;
-    var queueInterval = setInterval(function(){
-        var entry = queue.pop();
-        if (queue.length === 0){
-            clearInterval(queueInterval);
-            running=false;
-        }
-        if (!entry) return;
-        util.log("copying: " + entry.command);
-
-        exec(entry.command,
-        function(error, stdout, stderr) {
-            if (stdout) util.log('stdout: ' + stdout);
-            if (stderr) util.log('stderr: ' + stderr);
-            if (error !== null) {
-                util.log('exec error: ' + error);
-                console.log("OMG not copied " +entry.changedFile);
-
-                if (error.toString().indexOf("No such file or directory")>0) {
-                    createDirectory(entry.targetPath, function(error, stdout, stderr) {
-                        if (stdout) util.log('mkdir stdout: ' + stdout);
-                        if (stderr) util.log('mkdir stderr: ' + stderr);
-                        if (error !== null) {
-                            queue.push(entry);
-                            startQueue();
-                        }
-                        
-                    });
-                }
-            }
-
-            exec(entry.onFinish);
-
-        });
-
-        
-
-    }, 60);
-}
-
-
-function createDirectory(pathToFile, onFinish){
-    var dirname  = nodepath.dirname(pathToFile);
-    var command = "ssh z620 'mkdir -p "+dirname+"'";
-    console.log(command);
-    exec(command, onFinish);
-}
 

@@ -5,6 +5,7 @@
 var nodepath = require('path');
 var exec = require('child_process').exec;
 var util = require('util');
+var queue = require('./queue.js');
 var chokidar = require('chokidar');
 var argv = require('yargs')
     .usage('Watch and copy files with scp')
@@ -14,6 +15,9 @@ var argv = require('yargs')
     .demand('target')
     .alias('t', 'target')
     .describe('t', 'path to target machine and folder hostname:/oh/em/gee')
+    .default('ql', 20)
+    .alias('ql', 'queuelimit')
+    .describe('ql', 'the maximum entries, which should be handled by queue')
     .string('target')
     .string('source')
     .example('node watch -s /somefolder/ -t hostname:/mkay/sometarget/')
@@ -26,6 +30,7 @@ console.log("target:"+target);
 console.log("source:"+source);
 
 function watch(path, rootPath, onChange) {
+    // ignores .dotfiles
     chokidar.watch(path, {ignored: /[\/\\]\./}).on('change', function(path) {
         if (path) {
             // var subPath = replaceString(source, "", path);
@@ -35,7 +40,11 @@ function watch(path, rootPath, onChange) {
             var relPath = path.replace(rootPath, "");
             onChange(relPath);
         }
+    })
+    .on('ready', function() { 
+        util.log('\033[94m Initial scan complete. Ready for changes.\033[0m');
     });
+
 
 }
 
@@ -46,7 +55,16 @@ watch(source, source, function(changedFile) {
     completeSourcePath = nodepath.normalize(completeSourcePath);
     completeTargetPath = nodepath.normalize(completeTargetPath);
 
-    copy(completeSourcePath, completeTargetPath, changedFile);
+    // copy(completeSourcePath, completeTargetPath, changedFile);
+
+    queue.addToQueue({
+        command: 'scp ' + completeSourcePath + ' ' + completeTargetPath,
+        changedFile: changedFile,
+        targetPath:  completeTargetPath,
+        sourcePath:  completeSourcePath,
+        onFinish: 'osascript ShowNotification.scpt "Copied ' + changedFile + '"'
+    });
+
 });
 
 
@@ -79,7 +97,5 @@ function copy(sourcePath, targetPath, changedFile) {
                 });
 
         });
-
-
 
 }
