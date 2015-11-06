@@ -75,7 +75,6 @@ function copyFileList(error, stdout, stderr){
                 command: 'scp ' + completeSourcePath + ' ' + completeTargetPath,
                 changedFile: changedFile,
                 targetPath:  target + changedFile,
-                sourcePath:  completeSourcePath,
                 onFinish: 'osascript ShowNotification.scpt "Copied ' + changedFile + '"'
             });
         }

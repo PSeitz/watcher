@@ -61,12 +61,10 @@ watch(source, source, function(changedFile) {
         command: 'scp ' + completeSourcePath + ' ' + completeTargetPath,
         changedFile: changedFile,
         targetPath:  completeTargetPath,
-        sourcePath:  completeSourcePath,
         onFinish: 'osascript ShowNotification.scpt "Copied ' + changedFile + '"'
     });
 
 });
-
 
 
 function copy(sourcePath, targetPath, changedFile) {

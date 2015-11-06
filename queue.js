@@ -11,41 +11,59 @@ service.limit = 100;
 var queue = [];
 
 var delayToWorkqueue;
+var queueInterval;
+var discardMode = false;
+
+function onAfterDelay(){
+    if (discardMode){
+        util.log('discarding all entries');
+        queue = [];
+        discardMode = false;
+        return;
+    }
+    startQueue();
+}
+
+function startDelayedQueue(queueFull){
+    if (queueFull && !discardMode) {
+        util.log('queue size too big. Stop Queue and wait...' );
+        stopQueue();
+        discardMode = true;
+        startDelayedQueue();
+        return;
+    }
+
+    if (delayToWorkqueue) clearTimeout(delayToWorkqueue);
+    var timeout = discardMode ? 5000 : 450;
+    delayToWorkqueue = setTimeout(onAfterDelay, timeout);
+}
 
 function addToQueue(entry){
-    if (queue.length <= service.limit) queue.push(entry);
-    
-    if (delayToWorkqueue) clearInterval(delayToWorkqueue);
-
-    delayToWorkqueue = setTimeout(function () {
-        if (queue.length > service.limit){
-            util.log('queue size too big: ' + queue.length );
-            util.log('discarding all entries');
-
-            delayToWorkqueue = setTimeout(function () {
-                queue = [];
-            }, 2500);
-
-            return;
-        }
-        startQueue();
-
-    }, 450);
-
+    var queueFull = queue.length > service.limit;
+    if (!queueFull) {
+        queue.push(entry);
+    }
+    startDelayedQueue(queueFull);
 }
 
 function startQueue(){
     if (!running) workQueue();
 }
 
+function stopQueue(){
+    if (queueInterval) clearInterval(queueInterval);
+    running=false;
+}
+
 function workQueue(){
     "use strict";
     running = true;
-    var queueInterval = setInterval(function(){
+    util.log('workQueue');
+    if (queueInterval) clearInterval(queueInterval);
+    queueInterval = setInterval(function(){
         var entry = queue.pop();
         if (queue.length === 0){
-            clearInterval(queueInterval);
-            running=false;
+            stopQueue();
         }
         if (!entry) return;
         util.log("copying: " + entry.command);
@@ -71,7 +89,7 @@ function workQueue(){
                 }
             }
 
-            exec(entry.onFinish);
+            if (entry.onFinish) exec(entry.onFinish);
 
         });
         
@@ -84,7 +102,7 @@ function createDirectory(pathToFile, onFinish){
     var dirname  = nodepath.dirname(pathToFile);
     var command = "ssh z620 'mkdir -p "+dirname+"'";
     console.log(command);
-    exec(command, onFinish);
+    if (onFinish) exec(command, onFinish);
 }
 
 service.addToQueue = addToQueue;
