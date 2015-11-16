@@ -48,6 +48,10 @@ function watch(path, rootPath, onChange) {
 
 }
 
+function onFinish(message){
+    exec('osascript ShowNotification.scpt "' + message + '"');  
+}
+
 watch(source, source, function(changedFile) {
     "use strict";
     var completeSourcePath = source + changedFile;
@@ -61,7 +65,7 @@ watch(source, source, function(changedFile) {
         command: 'scp ' + completeSourcePath + ' ' + completeTargetPath,
         changedFile: changedFile,
         targetPath:  completeTargetPath,
-        onFinish: 'osascript ShowNotification.scpt "Copied ' + changedFile + '"'
+        onFinish: onFinish
     });
 
 });

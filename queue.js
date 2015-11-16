@@ -58,7 +58,6 @@ function stopQueue(){
 function workQueue(){
     "use strict";
     running = true;
-    util.log('workQueue');
     if (queueInterval) clearInterval(queueInterval);
     queueInterval = setInterval(function(){
         var entry = queue.pop();
@@ -72,9 +71,12 @@ function workQueue(){
         function(error, stdout, stderr) {
             if (stdout) util.log('stdout: ' + stdout);
             if (stderr) util.log('stderr: ' + stderr);
+
+            var message = "copied " +entry.changedFile;
             if (error !== null) {
                 util.log('exec error: ' + error);
-                console.log("OMG not copied " +entry.changedFile);
+                message = "OMG not copied " +entry.changedFile;
+                console.log(message);
 
                 if (error.toString().indexOf("No such file or directory")>0) {
                     createDirectory(entry.targetPath, function(error, stdout, stderr) {
@@ -89,7 +91,7 @@ function workQueue(){
                 }
             }
 
-            if (entry.onFinish) exec(entry.onFinish);
+            if (entry.onFinish) entry.onFinish(message);
 
         });
         

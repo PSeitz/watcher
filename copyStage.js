@@ -50,6 +50,10 @@ var append = argv.c ? "HEAD~"+argv.c:"" ;
 
 // console.log('git --no-pager diff --cached --name-only --diff-filter=MA ' + append);
 
+function onFinish(message){
+    exec('osascript ShowNotification.scpt "' + message + '"');  
+}
+
 function copyFileList(error, stdout, stderr){
         // if (stdout) util.log('stdout: ' + stdout);
         if (stderr) util.log('stderr: ' + stderr);
@@ -75,7 +79,7 @@ function copyFileList(error, stdout, stderr){
                 command: 'scp ' + completeSourcePath + ' ' + completeTargetPath,
                 changedFile: changedFile,
                 targetPath:  target + changedFile,
-                onFinish: 'osascript ShowNotification.scpt "Copied ' + changedFile + '"'
+                onFinish: onFinish
             });
         }
 }
